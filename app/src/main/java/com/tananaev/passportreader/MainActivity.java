@@ -378,7 +378,9 @@ public class MainActivity extends AppCompatActivity {
 
         private void doPassiveAuth() {
             try {
-                MessageDigest digest = MessageDigest.getInstance(sodFile.getDigestAlgorithm());
+                String digest_alg = sodFile.getDigestAlgorithm();
+                Log.d("Didgest alg", digest_alg);
+                MessageDigest digest = MessageDigest.getInstance(digest_alg);
 
                 Map<Integer,byte[]> dataHashes = sodFile.getDataGroupHashes();
 
@@ -389,7 +391,9 @@ public class MainActivity extends AppCompatActivity {
                 byte[] dg1Hash = digest.digest(dg1File.getEncoded());
                 byte[] dg2Hash = digest.digest(dg2File.getEncoded());
 
-                if(Arrays.equals(dg1Hash, dataHashes.get(1)) && Arrays.equals(dg2Hash, dataHashes.get(2)) && (!chipAuthSucceeded || Arrays.equals(dg14Hash, dataHashes.get(14)))) {
+                if(Arrays.equals(dg1Hash, dataHashes.get(1))
+                        && Arrays.equals(dg2Hash, dataHashes.get(2))
+                        && (!chipAuthSucceeded || Arrays.equals(dg14Hash, dataHashes.get(14)))) {
                     // We retrieve the CSCA from the german master list
                     ASN1InputStream asn1InputStream = new ASN1InputStream(getAssets().open("masterList"));
                     ASN1Primitive p;
@@ -429,6 +433,7 @@ public class MainActivity extends AppCompatActivity {
                     cpv.validate(cp, pkixParameters);
 
                     String sodDigestEncryptionAlgorithm = sodFile.getDocSigningCertificate().getSigAlgName();
+                    Log.d("Sig alg", sodDigestEncryptionAlgorithm);
 
                     boolean isSSA = false;
                     if (sodDigestEncryptionAlgorithm.equals("SSAwithRSA/PSS")) {
@@ -442,7 +447,9 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     sign.initVerify(sodFile.getDocSigningCertificate());
-                    sign.update(sodFile.getEContent());
+                    byte[] eContent = sodFile.getEContent();
+                    Log.d("SOD EContent", Base64.encodeToString(eContent, Base64.DEFAULT));
+                    sign.update(eContent);
                     passiveAuthSuccess = sign.verify(sodFile.getEncryptedDigest());
                 }
             }
@@ -487,6 +494,7 @@ public class MainActivity extends AppCompatActivity {
 
                 CardFileInputStream dg1In = service.getInputStream(PassportService.EF_DG1);
                 dg1File = new DG1File(dg1In);
+                Log.d("Encoded MRZ", Base64.encodeToString(dg1File.getEncoded(), Base64.DEFAULT));
 
                 CardFileInputStream dg2In = service.getInputStream(PassportService.EF_DG2);
                 dg2File = new DG2File(dg2In);
@@ -495,7 +503,8 @@ public class MainActivity extends AppCompatActivity {
                 sodFile = new SODFile(sodIn);
 
                 // We perform Chip Authentication using Data Group 14
-                doChipAuth(service);
+                // Skip chip auth
+                //doChipAuth(service);
 
                 // Then Passive Authentication using SODFile
                 doPassiveAuth();
