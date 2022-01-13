@@ -378,10 +378,18 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
+        private void largeLog(String tag, String content) {
+            if (content.length() > 4000) {
+                Log.d(tag, content.substring(0, 4000));
+                largeLog(tag, content.substring(4000));
+            } else {
+                Log.d(tag, content);
+            }
+        }
+
         private void doPassiveAuth() {
             try {
                 String digest_alg = sodFile.getDigestAlgorithm();
-                Log.d("Didgest alg", digest_alg);
                 MessageDigest digest = MessageDigest.getInstance(digest_alg);
 
                 Map<Integer,byte[]> dataHashes = sodFile.getDataGroupHashes();
@@ -390,11 +398,14 @@ public class MainActivity extends AppCompatActivity {
                 if(chipAuthSucceeded) {
                     dg14Hash = digest.digest(dg14Encoded);
                 }
+
                 byte[] dg1Hash = digest.digest(dg1File.getEncoded());
                 byte[] dg2Hash = digest.digest(dg2File.getEncoded());
 
+                Log.d("Didgest alg", digest_alg);
                 Log.d("DG1", Base64.encodeToString(dg1File.getEncoded(), Base64.DEFAULT));
-                Log.d("DG2", Base64.encodeToString(dg2File.getEncoded(), Base64.DEFAULT));
+                // DG2 is about 19KB. Logcat only does 4000-byte messages, so split it up
+                largeLog("DG2", Base64.encodeToString(dg2File.getEncoded(), Base64.DEFAULT));
                 Log.d("DG1 hash", Base64.encodeToString(dg1Hash, Base64.DEFAULT));
                 Log.d("DG2 hash", Base64.encodeToString(dg2Hash, Base64.DEFAULT));
 
@@ -454,7 +465,7 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     X509Certificate cert = sodFile.getDocSigningCertificate();
-                    sign.initVerify();
+                    sign.initVerify(cert);
                     byte[] eContent = sodFile.getEContent();
                     byte[] sig = sodFile.getEncryptedDigest();
                     sign.update(eContent);
