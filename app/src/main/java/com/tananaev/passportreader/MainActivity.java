@@ -36,6 +36,7 @@ import android.widget.EditText;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.fasterxml.jackson.databind.ser.Serializers;
 import com.google.android.material.snackbar.Snackbar;
 import com.wdullaer.materialdatetimepicker.date.DatePickerDialog;
 
@@ -63,6 +64,7 @@ import org.jmrtd.lds.iso19794.FaceImageInfo;
 import org.jmrtd.lds.iso19794.FaceInfo;
 
 import org.jmrtd.lds.PACEInfo;
+import org.spongycastle.asn1.ess.SigningCertificate;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -391,6 +393,11 @@ public class MainActivity extends AppCompatActivity {
                 byte[] dg1Hash = digest.digest(dg1File.getEncoded());
                 byte[] dg2Hash = digest.digest(dg2File.getEncoded());
 
+                Log.d("DG1", Base64.encodeToString(dg1File.getEncoded(), Base64.DEFAULT));
+                Log.d("DG2", Base64.encodeToString(dg2File.getEncoded(), Base64.DEFAULT));
+                Log.d("DG1 hash", Base64.encodeToString(dg1Hash, Base64.DEFAULT));
+                Log.d("DG2 hash", Base64.encodeToString(dg2Hash, Base64.DEFAULT));
+
                 if(Arrays.equals(dg1Hash, dataHashes.get(1))
                         && Arrays.equals(dg2Hash, dataHashes.get(2))
                         && (!chipAuthSucceeded || Arrays.equals(dg14Hash, dataHashes.get(14)))) {
@@ -446,11 +453,17 @@ public class MainActivity extends AppCompatActivity {
                         sign.setParameter(new PSSParameterSpec("SHA-256", "MGF1", MGF1ParameterSpec.SHA256, 32, 1));
                     }
 
-                    sign.initVerify(sodFile.getDocSigningCertificate());
+                    X509Certificate cert = sodFile.getDocSigningCertificate();
+                    sign.initVerify();
                     byte[] eContent = sodFile.getEContent();
-                    Log.d("SOD EContent", Base64.encodeToString(eContent, Base64.DEFAULT));
+                    byte[] sig = sodFile.getEncryptedDigest();
                     sign.update(eContent);
-                    passiveAuthSuccess = sign.verify(sodFile.getEncryptedDigest());
+                    passiveAuthSuccess = sign.verify(sig);
+
+                    Log.d("SOD pre-econtent", Base64.encodeToString(sodFile.getPreEContent(), Base64.DEFAULT));
+                    Log.d("SOD econtent", Base64.encodeToString(eContent, Base64.DEFAULT));
+                    Log.d("SOD sig", Base64.encodeToString(sig, Base64.DEFAULT));
+                    Log.d("SOD doc signing cert", Base64.encodeToString(sodFile.getDocSigningCertificate().getEncoded(), Base64.DEFAULT));
                 }
             }
             catch (Exception e) {
@@ -494,7 +507,6 @@ public class MainActivity extends AppCompatActivity {
 
                 CardFileInputStream dg1In = service.getInputStream(PassportService.EF_DG1);
                 dg1File = new DG1File(dg1In);
-                Log.d("Encoded MRZ", Base64.encodeToString(dg1File.getEncoded(), Base64.DEFAULT));
 
                 CardFileInputStream dg2In = service.getInputStream(PassportService.EF_DG2);
                 dg2File = new DG2File(dg2In);

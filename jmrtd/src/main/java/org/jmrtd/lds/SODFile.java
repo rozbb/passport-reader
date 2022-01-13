@@ -411,6 +411,10 @@ public class SODFile extends AbstractTaggedLDSFile {
     return SignedDataUtil.getEContent(signedData);
   }
 
+  public byte[] getPreEContent() throws IOException {
+    return ((ASN1OctetString)signedData.getEncapContentInfo().getContent()).getOctets();
+  }
+
   /**
    * Returns the name of the algorithm used in the data group hashes.
    *
