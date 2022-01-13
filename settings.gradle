@@ -1,1 +1,4 @@
 include ':app', ':sample'
+
+include ':jmrtd'
+project(':jmrtd').projectDir = new File(rootDir, 'jmrtd/')
