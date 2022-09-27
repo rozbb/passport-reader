@@ -667,7 +667,7 @@ public class MainActivity extends AppCompatActivity {
                     setResult(Activity.RESULT_OK, intent);
                     finish();
                 } else {
-                    startActivity(intent);
+                    //startActivity(intent);
                 }
 
             } else {
