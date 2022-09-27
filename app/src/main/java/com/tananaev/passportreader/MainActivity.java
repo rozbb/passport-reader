@@ -17,9 +17,11 @@ package com.tananaev.passportreader;
 
 import android.app.Activity;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.nfc.NfcAdapter;
 import android.nfc.Tag;
 import android.nfc.tech.IsoDep;
@@ -35,6 +37,7 @@ import android.view.WindowManager;
 import android.widget.EditText;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 
 import com.fasterxml.jackson.databind.ser.Serializers;
 import com.google.android.material.snackbar.Snackbar;
@@ -64,10 +67,14 @@ import org.jmrtd.lds.iso19794.FaceImageInfo;
 import org.jmrtd.lds.iso19794.FaceInfo;
 
 import org.jmrtd.lds.PACEInfo;
+import org.json.JSONObject;
 import org.spongycastle.asn1.ess.SigningCertificate;
 
+import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.InputStream;
 import java.math.BigInteger;
 import java.security.KeyStore;
@@ -90,6 +97,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.jmrtd.PassportService.DEFAULT_MAX_BLOCKSIZE;
 import static org.jmrtd.PassportService.NORMAL_MAX_TRANCEIVE_LENGTH;
@@ -391,6 +399,7 @@ public class MainActivity extends AppCompatActivity {
             try {
                 String digest_alg = sodFile.getDigestAlgorithm();
                 MessageDigest digest = MessageDigest.getInstance(digest_alg);
+                JSONObject passport_contents = new JSONObject();
 
                 Map<Integer,byte[]> dataHashes = sodFile.getDataGroupHashes();
 
@@ -401,6 +410,10 @@ public class MainActivity extends AppCompatActivity {
 
                 byte[] dg1Hash = digest.digest(dg1File.getEncoded());
                 byte[] dg2Hash = digest.digest(dg2File.getEncoded());
+
+                passport_contents.put("dg1", Base64.encodeToString(dg1File.getEncoded(), Base64.NO_WRAP));
+                passport_contents.put("dg2", Base64.encodeToString(dg2File.getEncoded(), Base64.NO_WRAP));
+                passport_contents.put("digest-alg", digest_alg);
 
                 Log.d("Didgest alg", digest_alg);
                 Log.d("DG1", Base64.encodeToString(dg1File.getEncoded(), Base64.DEFAULT));
@@ -452,6 +465,7 @@ public class MainActivity extends AppCompatActivity {
 
                     String sodDigestEncryptionAlgorithm = sodFile.getDocSigningCertificate().getSigAlgName();
                     Log.d("Sig alg", sodDigestEncryptionAlgorithm);
+                    passport_contents.put("sig-alg", sodDigestEncryptionAlgorithm);
 
                     boolean isSSA = false;
                     if (sodDigestEncryptionAlgorithm.equals("SSAwithRSA/PSS")) {
@@ -471,10 +485,50 @@ public class MainActivity extends AppCompatActivity {
                     sign.update(eContent);
                     passiveAuthSuccess = sign.verify(sig);
 
+                    passport_contents.put("pre-econtent", Base64.encodeToString(sodFile.getPreEContent(), Base64.NO_WRAP));
+                    passport_contents.put("econtent", Base64.encodeToString(eContent, Base64.NO_WRAP));
+                    passport_contents.put("sig", Base64.encodeToString(sig, Base64.NO_WRAP));
+                    passport_contents.put("cert", Base64.encodeToString(cert.getEncoded(), Base64.NO_WRAP));
                     Log.d("SOD pre-econtent", Base64.encodeToString(sodFile.getPreEContent(), Base64.DEFAULT));
                     Log.d("SOD econtent", Base64.encodeToString(eContent, Base64.DEFAULT));
                     Log.d("SOD sig", Base64.encodeToString(sig, Base64.DEFAULT));
-                    Log.d("SOD doc signing cert", Base64.encodeToString(sodFile.getDocSigningCertificate().getEncoded(), Base64.DEFAULT));
+                    Log.d("SOD doc signing cert", Base64.encodeToString(cert.getEncoded(), Base64.DEFAULT));
+
+                    largeLog("Passport JSON", passport_contents.toString(4));
+
+                    Intent sendIntent = new Intent();
+                    /*
+                    // Make a file for the JSON dump
+                    String surname = dg1File.getMRZInfo().getPrimaryIdentifier().replace("<", " ");
+                    String filename = surname + "_passport_contents.json";
+                    File jsonFile = new File(getApplicationContext().getCacheDir(), filename);
+                    //File.createTempFile(filename, ".json");
+                    jsonFile.deleteOnExit();
+
+                    // Write all the data to the file
+                    FileWriter fw = new FileWriter(jsonFile.getAbsoluteFile());
+                    BufferedWriter writer = new BufferedWriter(fw);
+                    writer.write(passport_contents.toString(4));
+                    writer.close();
+                    fw.close();
+
+
+                    Context context = getApplicationContext();
+                    sendIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    Uri fileUri = FileProvider.getUriForFile(
+                            Objects.requireNonNull(getApplicationContext()),
+                            BuildConfig.APPLICATION_ID + ".fileprovider",
+                            jsonFile
+                    );
+                    Log.d("fileUri", fileUri.toString());
+                     */
+                    sendIntent.setAction(Intent.ACTION_SEND);
+                    sendIntent.putExtra(Intent.EXTRA_TEXT, passport_contents.toString(4));
+                    //sendIntent.putExtra(Intent.EXTRA_STREAM, fileUri);
+                    sendIntent.setType("text/plain");
+
+                    Intent shareIntent = Intent.createChooser(sendIntent, "Export passport dump...");
+                    startActivity(shareIntent);
                 }
             }
             catch (Exception e) {
