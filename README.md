@@ -1,63 +1,17 @@
-# e-Passport NFC Reader
+# e-Passport NFC Dumper
 
-[![Get it on Google Play](http://www.tananaev.com/badges/google-play.svg)](https://play.google.com/store/apps/details?id=com.tananaev.passportreader) [![Get it on F-Droid](http://www.tananaev.com/badges/f-droid.svg)](https://f-droid.org/packages/com.tananaev.passportreader)
+This app is a companion to the [zk-creds](https://github.com/rozbb/zkcreds-rs) anonymous credentials framework. This app dumps the contents of an NFC-equipped passport to a JSON blob. That JSON can then be used to create an anonymous credential in the zk-creds scheme. Prebuilt APKs can be found in the root directory of this repo.
 
-Android app that uses the NFC chip to communicate with an electronic passport.
+## How to use
 
-Third party apps can use custom intent action to use this app to retrieve passport data.
+* Open the app and enter in the requested passport information. This is necessary because the data on the passport's NFC chip is encrypted using this info.
+* Place your device on top of your passport. You may need to move it around to get it to work. It will vibrate when it finds the chip.
+* Keep the device in place until reading is done.
+* Once reading is done, you will be prompted to share a large JSON blob of text. Share this with yourself using whichever secure means you prefer (e.g., Signal's Note to Self feature)
 
-Custom action id:
-- `com.tananaev.passportreader.REQUEST`
+## Thanks
 
-The following string extras can be set to allow pre-filling of input fields:
-- `passportNumber` - String
-- `dateOfExpiry` - String in format YYYY-MM-DD
-- `dateOfBirth` - String in format YYYY-MM-DD
-- `photoAsBase64` - Boolean indicating whether to return photo as base64 encoded image (default false)
-
-Available data keys:
-- `firstName` - String
-- `lastName` - String
-- `gender` - String
-- `state` - String
-- `nationality` - String
-- `photo` - Bitmap (if `photoAsBase64` is false)
-- `photoBase64` - String (if `photoAsBase64` is true)
-
-Usage example:
-
-```java
-public class LoginActivity extends AppCompatActivity {
-
-    ...
-
-    private void requestPassportData() {
-        Intent intent = new Intent();
-        intent.setAction("com.tananaev.passportreader.REQUEST");
-        startActivityForResult(intent, 0);
-    }
-
-    ...
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (resultCode == RESULT_OK) {
-            String name = data.getStringExtra("firstName") + " " + data.getStringExtra("lastName");
-            ...
-        }
-    }
-
-    ...
-
-}
-
-```
-
-For full usage example see "sample" module in the repository.
-
-## Contacts
-
-Author - Anton Tananaev ([anton.tananaev@gmail.com](mailto:anton.tananaev@gmail.com))
+This app is only possible thanks to Anton Tananaev's work. Original repo is [here](https://github.com/tananaev/passport-reader).
 
 ## Dependencies
 
@@ -69,6 +23,16 @@ Note that the app includes following third party dependencies:
 - JP2 for Android - [BSD 2-Clause License](https://opensource.org/licenses/BSD-2-Clause)
 - JNBIS - [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0)
 - Material DateTimepicker - [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0)
+
+## LGPL Disclosures
+
+### JMRTD
+
+The JMRTD library, which is vendored in `jmrtd/`, has been modified from its [original code](https://jmrtd.org/).
+
+**Modifications:**
+
+* `lds/SODFile.java` has a new public method `SODFile::getPreEContent`
 
 ## License
 
